@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div>
+    <p>자동으로 로드된 파일 데이터:</p>
+  </div>
+  <div class="preview">
+    <ul></ul>  <!--읽은 파일 데이터를 나열하기 위한 비순서 목록의 부모요소-->
+  </div>
+</body>
+<script>
+  const preview = document.querySelector('.preview ul');  //.preview 클래스 안에 있는 ul 요소를 선택  선택된 ul요소를 preview 변수에 저장
+
+  // 자동으로 test01.txt 파일 로드
+  const loadFile = async () => {  // 비동기함수 정의. async를 사용해 내부에서 await를 사용할 수 있게 함.
+    try {
+      const response = await fetch('./test01.txt');  // fetch()를 사용해 해당 경로의 파일을 HTTP 요청으로 가져옴
+      if (!response.ok) {  //파일 로드 요청이 실패할 경우
+        throw new Error(`Failed to load file: ${response.statusText}`);  // throw 에러 발생
+      }
+      const text = await response.text();  // 응답 데이터를 텍스트 형식으로 읽어옴
+      displayFileContents('test01.txt', text); // 파일 이름과 내용을 displayFileContents 함수에 전달하여 화면에 표시
+    } catch (error) {
+      console.error('Error loading file:', error);
+    }
+  };
+
+  const displayFileContents = (fileName, fileContent) => {
+    const listItem = document.createElement('li');  //li 요소 만듬
+
+    // 파일명 표시
+    const summary = createTextElement(`파일명: ${fileName}`);  // 파일명
+    const content = document.createElement('div');
+
+    // 파일 내용을 줄 단위로 나누어 출력
+    const lines = fileContent.split('\n');  // 
+    lines.forEach(line => {
+      const lineElement = createTextElement(line); // 각 텍스트 형성
+      content.appendChild(lineElement);  // <div> 요소에 추가 데이터가 추가된 div 추가
+    });
+    
+
+    listItem.append(summary, content);   //li 요소에 데이터가 추가된 div 요소 추가
+    preview.appendChild(listItem);  //ul 요소에 데이터가 추가된 li div 요소 추가
+  };
+
+  const createTextElement = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div;
+  };
+
+  // 페이지 로드 시 파일 자동 로드
+  window.addEventListener('load', loadFile);  //파일 바로 형성
+</script>
+</html>

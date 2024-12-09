@@ -1,0 +1,72 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div class="brain-model-box" style="width: 500px; height: 500px;">
+
+    </div>
+     
+      <input type="file" id="file2" name="files" class="glb-input"/>
+      <label for="file" class="custom-file-label conversion-btn">3D Conversion</label>
+    <script type="module" src="./glb.js"></script>
+</body>
+</html> 
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    #progress-container {
+        width: 100%;
+        background-color: #DDDDDD;
+    }
+ 
+    #progress-bar {
+        width: 0;
+        height: 30px;
+        line-height: 30px;
+        background-color: #8C9CEC;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+</div>
+<br>
+<button onclick="start()">progress</button>
+<script>
+  var i = 0;
+
+  function start() {
+      if (i == 0) {
+          i = 1;
+          var elem = document.getElementById("progress-bar");
+          var width = 0;
+          var id = setInterval(frame, 10);
+
+          function frame() {
+              if (width >= 100) {
+                  clearInterval(id);
+                  i = 0;
+              } else {
+                  width++;
+                  elem.style.width = width + "%";
+                  elem.innerHTML = width + "%";
+              }
+          }
+      }
+  }
+</script>
+  
+</body>
+</html>

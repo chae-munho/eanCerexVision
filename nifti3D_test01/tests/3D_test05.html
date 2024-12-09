@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIFTI 3D Viewer</title>
+
+    <!-- Favicon 에러 방지 -->
+    <link rel="icon" href="data:,">
+
+    <!-- Three.js 및 OrbitControls 로드 -->
+    <script type="module">
+        import * as THREE from "https://cdn.skypack.dev/three@0.129.0/build/three.module.js";
+        import { OrbitControls } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/controls/OrbitControls.js";
+        import * as nifti from './nifti-reader.js';
+
+        // NIfTI 파일 선택 및 3D 출력
+        document.addEventListener("DOMContentLoaded", () => {
+            const container = document.querySelector('.brain-model-box');
+            const fileInput = document.querySelector('.glb-input');
+            const progressContainer = document.getElementById("progress-container");
+            const progressBar = document.getElementById("progress-bar");
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(
+                75,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 0, 150);
+
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const light = new THREE.AmbientLight(0xffffff, 1);
+            scene.add(light);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+
+            fileInput.addEventListener("change", (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        let data = e.target.result;
+                        if (nifti.isCompressed(data)) {
+                            data = nifti.decompress(data);
+                        }
+
+                        if (nifti.isNIFTI(data)) {
+                            const header = nifti.readHeader(data);
+                            const image = nifti.readImage(header, data);
+                            visualizeNIFTI(header, image);
+                        } else {
+                            alert("Invalid NIFTI file.");
+                        }
+                    };
+
+                    progressContainer.style.display = "block";
+                    progressBar.style.width = "0%";
+
+                    reader.onprogress = (e) => {
+                        const percent = Math.floor((e.loaded / e.total) * 100);
+                        progressBar.style.width = percent + "%";
+                        if (percent >= 100) {
+                            progressContainer.style.display = "none";
+                        }
+                    };
+
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+
+            function visualizeNIFTI(header, image) {
+                const dims = header.dims;
+                const cols = dims[1];
+                const rows = dims[2];
+                const depth = dims[3];
+
+                const sliceSize = cols * rows;
+                const typedArray = new Uint8Array(image);
+
+                // Clear previous scene content
+                while (scene.children.length > 1) {
+                    const object = scene.children.pop();
+                    object.geometry?.dispose();
+                    object.material?.dispose();
+                }
+
+                for (let z = 0; z < depth; z++) {
+                    const geometry = new THREE.PlaneGeometry(cols, rows);
+                    const material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+
+                    const sliceData = new Uint8Array(sliceSize);
+                    for (let i = 0; i < sliceSize; i++) {
+                        sliceData[i] = typedArray[z * sliceSize + i];
+                    }
+
+                    const texture = new THREE.DataTexture(sliceData, cols, rows, THREE.LuminanceFormat);
+                    texture.needsUpdate = true;
+                    material.map = texture;
+
+                    const plane = new THREE.Mesh(geometry, material);
+                    plane.position.z = -z * 2;
+                    scene.add(plane);
+                }
+            }
+
+            window.addEventListener("resize", () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+
+            animate();
+        });
+    </script>
+
+    <!-- 스타일 정의 -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #000;
+            color: #fff;
+        }
+        .brain-model-box {
+            width: 80%;
+            height: 500px;
+            border: 1px solid #444;
+            margin-top: 20px;
+            position: relative;
+        }
+        .glb-input {
+            margin: 20px;
+        }
+        #progress-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            display: none;
+            text-align: center;
+        }
+        #progress-bar {
+            background-color: #00ff00;
+            height: 20px;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <h1>NIFTI 3D Viewer</h1>
+    <input type="file" class="glb-input" accept=".nii, .nii.gz">
+    <div class="brain-model-box"></div>
+
+    <!-- 로딩바 -->
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+</body>
+</html>
